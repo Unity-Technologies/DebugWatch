@@ -23,6 +23,10 @@ namespace Unity.DebugWatch
     {
         [SerializeField]
         public IAccessor<TValue> Accessor;
+        public DefaultStringAccessor(IAccessor<TValue> accessor)
+        {
+            Accessor = accessor;
+        }
         public bool TryGet(out string value)
         {
             if (Accessor.TryGet(out var v))
@@ -48,7 +52,7 @@ namespace Unity.DebugWatch
             {
                 if (a is IAccessor<TValue> av)
                 {
-                    return new DefaultStringAccessor<TValue>() { Accessor = av };
+                    return new DefaultStringAccessor<TValue>(av);
                 }
                 else
                 {

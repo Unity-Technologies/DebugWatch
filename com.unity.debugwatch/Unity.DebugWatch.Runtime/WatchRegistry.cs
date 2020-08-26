@@ -10,7 +10,7 @@ using Unity.Properties;
 using Unity.Assertions;
 using UnityEngine.UIElements;
 using System.ComponentModel;
-using UnityEditor.SearchService;
+//using UnityEditor.SearchService;
 using UnityEngine.SceneManagement;
 
 namespace Unity.DebugWatch
@@ -391,6 +391,12 @@ namespace Unity.DebugWatch
                 {
                     return ti.StringAccessorFactory.Create(w, a) as IAccessor<string>;
                 }
+#if !DEBUGWATCH_NODEFAULTSTRINGACCESSOR
+                Type genType = typeof(DefaultStringAccessor<>);
+                Type[] typeParams = new Type[] { valueType };
+                Type genType2 = genType.MakeGenericType(typeParams);
+                return (IAccessor<string>)Activator.CreateInstance(genType2, a);
+#endif
             }
             return null;
         }
