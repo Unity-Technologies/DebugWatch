@@ -190,6 +190,101 @@ namespace Unity.DebugWatch.Editor
             }
         }
         bool UpdateAfterAutoCompleteSelect = false;
+        void OnGUIAutoComplete()
+        {
+
+
+            if (showAutoComplete)
+            {
+                //Styles.LineEven.Draw
+                //EditorGUI.DrawRect(rectAutoComplete, Color.black);
+                //GUI.Box(rectAutoComplete, "", Styles.BoxStyle);
+                if (Event.current.type == EventType.Repaint) Styles.background.Draw(rectAutoComplete, GUIContent.none, false, false, false, false);
+
+                int lineH = EditorStyles.standardFont.lineHeight;
+                int totH = AutoCompleteSuggestions.Count * lineH;
+
+                AutoCompletePos = GUI.BeginScrollView(rectAutoComplete, AutoCompletePos, new Rect(0, 0, rectAutoComplete.width - 20, totH), false, true);
+                var w = rectAutoComplete.width - 20;
+                Rect curRect = new Rect(0, 0, w * 0.5f, lineH);
+                Rect curRectType = new Rect(curRect.xMax, 0, w * 0.5f, lineH);
+                bool even = true;
+                //int i = 0;
+
+                foreach (var s in AutoCompleteSuggestions)
+                {
+                    if (Event.current.type == EventType.Repaint)
+                    {
+
+                        //if (even) 
+                        //    Styles.LineEven.Draw(curRect, GUIContent.none, false, false, false, false);
+                        //else 
+                        //    Styles.LineOdd.Draw(curRect, GUIContent.none, false, false, false, false);
+                    }
+
+                    if (curRect.Contains(Event.current.mousePosition))
+                    {
+                        EditorGUI.DrawRect(curRect, GUI.skin.settings.selectionColor);
+                        if (Event.current.type == EventType.MouseDown)
+                        {
+                            if (s.FieldInfo.Name == "..")
+                            {
+                                var cursor = addWatchText.Range();
+                                if (ParserUtils.TryExtractLastPathPart(addWatchText, ref cursor, out var lastPart))
+                                {
+                                    addWatchText = addWatchText.Substring(cursor);
+                                }
+                            }
+                            else
+                            {
+                                // suggestion selected
+                                if (AutoCompleteDeepestContext == AutoCompleteGlobalContext)
+                                {
+                                    addWatchText = s.AsLocal();
+                                }
+                                else
+                                {
+                                    addWatchText = s.AddTo(AutoCompleteValidString);
+                                }
+                            }
+                            //UpdateAutoComplete();
+                            showAutoComplete = false;
+                            Debug.Log("Selected " + s);
+                            UpdateAfterAutoCompleteSelect = true;
+                            //GUIUtility.keyboardControl = controlId;
+                        }
+                    }
+                    else
+                    {
+                    }
+
+                    GUI.Label(curRect, s.FieldInfo.Name, Styles.LabelStyle);
+                    string sInfo = "";
+                    //if (s.FieldInfo.IsOperator) sInfo += "[Op]";
+                    //if (s.TypeInfo.IsProperty) sInfo += "[Prop]";
+                    //if (s.TypeInfo.IsCollection) sInfo += "[Coll[" + s.TypeInfo.CollectionLenth + "]]";
+                    //if (s.TypeInfo.IsPropertyContainer) sInfo += "[PropCtnr]";
+                    if (s.TypeInfo.ValueType != null)
+                    {
+                        sInfo += " " + s.TypeInfo.ValueType.Name;
+                        if (s.TypeInfo.IsCollection) sInfo += " [" + s.TypeInfo.CollectionLenth + "]";
+                    }
+                    else
+                    {
+                        sInfo += " unknown type";
+                    }
+                    GUI.Label(curRectType, sInfo, Styles.LabelStyle);
+
+
+                    curRect.y += lineH;
+                    curRectType.y += lineH;
+                    even = !even;
+                    //++i;
+                }
+                GUI.EndScrollView();
+
+            }
+        }
         void OnGUI()
         {
             repaintLimiter.RecordRepaint();
@@ -321,101 +416,112 @@ namespace Unity.DebugWatch.Editor
                 //    }
                 //}
             }
+
+            if(Event.current.type == EventType.MouseDown)
+            {
+                OnGUIAutoComplete();
+            }
+
             GUILayout.EndHorizontal();
             watchList.OnGUI(GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true)));
             GUILayout.EndVertical();
+            //OnGUIAutoComplete();
 
-            
-            if (showAutoComplete)
+            if (Event.current.type != EventType.MouseDown)
             {
-                //Styles.LineEven.Draw
-                //EditorGUI.DrawRect(rectAutoComplete, Color.black);
-                //GUI.Box(rectAutoComplete, "", Styles.BoxStyle);
-                if (Event.current.type == EventType.Repaint) Styles.background.Draw(rectAutoComplete, GUIContent.none, false, false, false, false);
-                
-                int lineH = EditorStyles.standardFont.lineHeight;
-                int totH = AutoCompleteSuggestions.Count * lineH;
-
-                AutoCompletePos = GUI.BeginScrollView(rectAutoComplete, AutoCompletePos, new Rect(0, 0, rectAutoComplete.width-20, totH), false, true);
-                var w = rectAutoComplete.width - 20;
-                Rect curRect = new Rect(0, 0, w*0.5f, lineH);
-                Rect curRectType = new Rect(curRect.xMax, 0, w * 0.5f, lineH);
-                bool even = true;
-                //int i = 0;
-
-                foreach (var s in AutoCompleteSuggestions)
-                {
-                    if (Event.current.type == EventType.Repaint)
-                    {
-                        
-                        //if (even) 
-                        //    Styles.LineEven.Draw(curRect, GUIContent.none, false, false, false, false);
-                        //else 
-                        //    Styles.LineOdd.Draw(curRect, GUIContent.none, false, false, false, false);
-                    }
-
-                    if (curRect.Contains(Event.current.mousePosition))
-                    {
-                        EditorGUI.DrawRect(curRect, GUI.skin.settings.selectionColor);
-                        if (Event.current.type == EventType.MouseDown)
-                        {
-                            if (s.FieldInfo.Name == "..")
-                            {
-                                var cursor = addWatchText.Range();
-                                if (ParserUtils.TryExtractLastPathPart(addWatchText, ref cursor, out var lastPart))
-                                {
-                                    addWatchText = addWatchText.Substring(cursor);
-                                }
-                            }
-                            else
-                            {
-                                // suggestion selected
-                                if (AutoCompleteDeepestContext == AutoCompleteGlobalContext)
-                                {
-                                    addWatchText = s.AsLocal();
-                                }
-                                else
-                                {
-                                    addWatchText = s.AddTo(AutoCompleteValidString);
-                                }
-                            }
-                            //UpdateAutoComplete();
-                            showAutoComplete = false;
-                            Debug.Log("Selected " + s);
-                            UpdateAfterAutoCompleteSelect = true;
-                            //GUIUtility.keyboardControl = controlId;
-                        }
-                    }
-                    else
-                    {
-                    }
-                    
-                    GUI.Label(curRect, s.FieldInfo.Name, Styles.LabelStyle);
-                    string sInfo ="";
-                    //if (s.FieldInfo.IsOperator) sInfo += "[Op]";
-                    //if (s.TypeInfo.IsProperty) sInfo += "[Prop]";
-                    //if (s.TypeInfo.IsCollection) sInfo += "[Coll[" + s.TypeInfo.CollectionLenth + "]]";
-                    //if (s.TypeInfo.IsPropertyContainer) sInfo += "[PropCtnr]";
-                    if (s.TypeInfo.ValueType != null)
-                    {
-                        sInfo += " " + s.TypeInfo.ValueType.Name;
-                        if (s.TypeInfo.IsCollection) sInfo += " [" + s.TypeInfo.CollectionLenth + "]";
-                    } else
-                    {
-                        sInfo += " unknown type";
-                    }
-                    GUI.Label(curRectType, sInfo, Styles.LabelStyle);
-                    
-                    
-                    curRect.y += lineH;
-                    curRectType.y += lineH;
-                    even = !even;
-                    //++i;
-                }
-                GUI.EndScrollView();
-                
+                OnGUIAutoComplete();
             }
-            if(Event.current.type == EventType.MouseDown)
+
+            //if (showAutoComplete)
+            //{
+            //    //Styles.LineEven.Draw
+            //    //EditorGUI.DrawRect(rectAutoComplete, Color.black);
+            //    //GUI.Box(rectAutoComplete, "", Styles.BoxStyle);
+            //    if (Event.current.type == EventType.Repaint) Styles.background.Draw(rectAutoComplete, GUIContent.none, false, false, false, false);
+            //    
+            //    int lineH = EditorStyles.standardFont.lineHeight;
+            //    int totH = AutoCompleteSuggestions.Count * lineH;
+            //
+            //    AutoCompletePos = GUI.BeginScrollView(rectAutoComplete, AutoCompletePos, new Rect(0, 0, rectAutoComplete.width-20, totH), false, true);
+            //    var w = rectAutoComplete.width - 20;
+            //    Rect curRect = new Rect(0, 0, w*0.5f, lineH);
+            //    Rect curRectType = new Rect(curRect.xMax, 0, w * 0.5f, lineH);
+            //    bool even = true;
+            //    //int i = 0;
+            //
+            //    foreach (var s in AutoCompleteSuggestions)
+            //    {
+            //        if (Event.current.type == EventType.Repaint)
+            //        {
+            //            
+            //            //if (even) 
+            //            //    Styles.LineEven.Draw(curRect, GUIContent.none, false, false, false, false);
+            //            //else 
+            //            //    Styles.LineOdd.Draw(curRect, GUIContent.none, false, false, false, false);
+            //        }
+            //
+            //        if (curRect.Contains(Event.current.mousePosition))
+            //        {
+            //            EditorGUI.DrawRect(curRect, GUI.skin.settings.selectionColor);
+            //            if (Event.current.type == EventType.MouseDown)
+            //            {
+            //                if (s.FieldInfo.Name == "..")
+            //                {
+            //                    var cursor = addWatchText.Range();
+            //                    if (ParserUtils.TryExtractLastPathPart(addWatchText, ref cursor, out var lastPart))
+            //                    {
+            //                        addWatchText = addWatchText.Substring(cursor);
+            //                    }
+            //                }
+            //                else
+            //                {
+            //                    // suggestion selected
+            //                    if (AutoCompleteDeepestContext == AutoCompleteGlobalContext)
+            //                    {
+            //                        addWatchText = s.AsLocal();
+            //                    }
+            //                    else
+            //                    {
+            //                        addWatchText = s.AddTo(AutoCompleteValidString);
+            //                    }
+            //                }
+            //                //UpdateAutoComplete();
+            //                showAutoComplete = false;
+            //                Debug.Log("Selected " + s);
+            //                UpdateAfterAutoCompleteSelect = true;
+            //                //GUIUtility.keyboardControl = controlId;
+            //            }
+            //        }
+            //        else
+            //        {
+            //        }
+            //        
+            //        GUI.Label(curRect, s.FieldInfo.Name, Styles.LabelStyle);
+            //        string sInfo ="";
+            //        //if (s.FieldInfo.IsOperator) sInfo += "[Op]";
+            //        //if (s.TypeInfo.IsProperty) sInfo += "[Prop]";
+            //        //if (s.TypeInfo.IsCollection) sInfo += "[Coll[" + s.TypeInfo.CollectionLenth + "]]";
+            //        //if (s.TypeInfo.IsPropertyContainer) sInfo += "[PropCtnr]";
+            //        if (s.TypeInfo.ValueType != null)
+            //        {
+            //            sInfo += " " + s.TypeInfo.ValueType.Name;
+            //            if (s.TypeInfo.IsCollection) sInfo += " [" + s.TypeInfo.CollectionLenth + "]";
+            //        } else
+            //        {
+            //            sInfo += " unknown type";
+            //        }
+            //        GUI.Label(curRectType, sInfo, Styles.LabelStyle);
+            //        
+            //        
+            //        curRect.y += lineH;
+            //        curRectType.y += lineH;
+            //        even = !even;
+            //        //++i;
+            //    }
+            //    GUI.EndScrollView();
+            //    
+            //}
+            if (Event.current.type == EventType.MouseDown)
             {
                 if (!rectAutoComplete.Contains(Event.current.mousePosition))
                 {
